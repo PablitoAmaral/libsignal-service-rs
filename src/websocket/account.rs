@@ -48,13 +48,16 @@ pub(crate) struct DeviceInfoEncrypted {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountAttributes {
-    #[serde(default, with = "serde_optional_base64")]
+    #[serde(default, skip_serializing, with = "serde_optional_base64")]
     pub signaling_key: Option<Vec<u8>>,
     pub registration_id: u32,
     pub pni_registration_id: u32,
+    #[serde(default, skip_serializing)]
     pub voice: bool,
+    #[serde(default, skip_serializing)]
     pub video: bool,
     pub fetches_messages: bool,
+    #[serde(default, skip_serializing)]
     pub pin: Option<String>,
     pub registration_lock: Option<String>,
     #[serde(default, with = "serde_optional_base64")]
@@ -62,10 +65,11 @@ pub struct AccountAttributes {
     pub unrestricted_unidentified_access: bool,
     pub discoverable_by_phone_number: bool,
     pub capabilities: DeviceCapabilities,
-    pub name: Option<String>,
+    #[serde(default, with = "serde_optional_base64")]
+    pub name: Option<Vec<u8>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
+#[derive(Debug, Deserialize, Default, Eq, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceCapabilities {
     #[serde(default)]
@@ -84,6 +88,28 @@ pub struct DeviceCapabilities {
     pub pni: bool,
     #[serde(default)]
     pub payment_activation: bool,
+}
+
+impl DeviceCapabilities {
+    /// Only capabilities recognized by the current Signal server.
+    const FIELDS: &[(&str, fn(&DeviceCapabilities) -> bool)] = &[
+        ("storage", |c| c.storage),
+    ];
+}
+
+impl Serialize for DeviceCapabilities {
+    fn serialize<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeMap;
+        let mut map =
+            serializer.serialize_map(Some(Self::FIELDS.len()))?;
+        for (name, getter) in Self::FIELDS {
+            map.serialize_entry(name, &getter(self))?;
+        }
+        map.end()
+    }
 }
 
 #[derive(Debug, Deserialize)]
