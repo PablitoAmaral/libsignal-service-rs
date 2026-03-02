@@ -21,29 +21,7 @@ impl WebSocketRequestMessage {
     /// Equivalent of
     /// `SignalServiceMessagePipe::isSignalKeyEncrypted(WebSocketMessage)`.
     pub fn is_signal_key_encrypted(&self) -> bool {
-        if self.headers.is_empty() {
-            return true;
-        }
-
-        for header in &self.headers {
-            let parts: Vec<_> = header.split(':').collect();
-            if parts.len() != 2 {
-                tracing::warn!(
-                    "Got a weird header: {:?}, split in {:?}",
-                    header,
-                    parts
-                );
-                continue;
-            }
-
-            if parts[0].trim().eq_ignore_ascii_case("X-Signal-Key")
-                && parts[1].trim().eq_ignore_ascii_case("false")
-            {
-                return false;
-            }
-        }
-
-        true
+        false
     }
 }
 
